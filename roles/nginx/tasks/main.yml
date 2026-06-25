@@ -1,0 +1,45 @@
+---
+- name: Gather current nginx version
+  shell: "dpkg -l nginx | grep nginx | awk '{print $3}'"
+  register: before_version
+  changed_when: false
+  ignore_errors: true
+
+- name: Current version print
+  debug:
+    msg: "Current nginx version: {{ before_version.stdout }}"
+
+- name: Add nginx GPG key
+  shell: curl -fsSL https://nginx.org/keys/nginx_signing.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/nginx.gpg
+  args:
+    creates: /etc/apt/trusted.gpg.d/nginx.gpg
+
+- name: Add nginx repo
+  shell: echo "deb http://nginx.org/packages/ubuntu jammy nginx" > /etc/apt/sources.list.d/nginx.list
+  args:
+    creates: /etc/apt/sources.list.d/nginx.list
+
+- name: Update apt cache
+  apt:
+    update_cache: true
+
+- name: Install/Upgrade nginx
+  apt:
+    name: "nginx={{ nginx_version }}"
+    state: present
+    allow_downgrade: true
+
+- name: Gather upgraded nginx version
+  shell: "dpkg -l nginx | grep nginx | awk '{print $3}'"
+  register: after_version
+  changed_when: false
+
+- name: Confirm version
+  debug:
+    msg: "nginx | Before: {{ before_version.stdout }} | After: {{ after_version.stdout }}"
+
+- name: Save report
+  lineinfile:
+    path: /tmp/patch_report.txt
+    line: "{{ inventory_hostname }} | nginx | {{ before_version.stdout }} | {{ after_version.stdout }} | {{ ansible_date_time.iso8601 }}"
+    create: true

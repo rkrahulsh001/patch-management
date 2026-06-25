@@ -1,0 +1,11 @@
+---
+- name: Patch Management
+  hosts: "{{ target_env }}"
+  become: true
+  roles:
+    - role: /home/rahulsharma/project/patch-management/roles/nginx
+      when: patch_nginx | default(false) | bool
+    - role: /home/rahulsharma/project/patch-management/roles/apache
+      when: patch_apache | default(false) | bool
+    - role: /home/rahulsharma/project/patch-management/roles/openssh
+      when: patch_openssh | default(false) | bool

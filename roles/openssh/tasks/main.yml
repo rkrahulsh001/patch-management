@@ -1,0 +1,35 @@
+---
+- name: Gather current openssh version
+  shell: "dpkg -l openssh-server | grep openssh-server | awk '{print $3}'"
+  register: before_version
+  changed_when: false
+  ignore_errors: true
+
+- name: Current version print
+  debug:
+    msg: "Current openssh-server version: {{ before_version.stdout }}"
+
+- name: Update apt cache
+  apt:
+    update_cache: true
+
+- name: Install/Upgrade openssh-server
+  apt:
+    name: "openssh-server={{ openssh_version }}"
+    state: present
+    allow_downgrade: true
+
+- name: Gather upgraded openssh version
+  shell: "dpkg -l openssh-server | grep openssh-server | awk '{print $3}'"
+  register: after_version
+  changed_when: false
+
+- name: Confirm version
+  debug:
+    msg: "openssh-server | Before: {{ before_version.stdout }} | After: {{ after_version.stdout }}"
+
+- name: Save report
+  lineinfile:
+    path: /tmp/patch_report.txt
+    line: "{{ inventory_hostname }} | openssh-server | {{ before_version.stdout }} | {{ after_version.stdout }} | {{ ansible_date_time.iso8601 }}"
+    create: true

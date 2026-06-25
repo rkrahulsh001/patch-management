@@ -1,0 +1,35 @@
+---
+- name: Gather current apache version
+  shell: "dpkg -l apache2 | grep apache2 | awk '{print $3}'"
+  register: before_version
+  changed_when: false
+  ignore_errors: true
+
+- name: Current version print
+  debug:
+    msg: "Current apache2 version: {{ before_version.stdout }}"
+
+- name: Update apt cache
+  apt:
+    update_cache: true
+
+- name: Install/Upgrade apache2
+  apt:
+    name: "apache2={{ apache_version }}"
+    state: present
+    allow_downgrade: true
+
+- name: Gather upgraded apache version
+  shell: "dpkg -l apache2 | grep apache2 | awk '{print $3}'"
+  register: after_version
+  changed_when: false
+
+- name: Confirm version
+  debug:
+    msg: "apache2 | Before: {{ before_version.stdout }} | After: {{ after_version.stdout }}"
+
+- name: Save report
+  lineinfile:
+    path: /tmp/patch_report.txt
+    line: "{{ inventory_hostname }} | apache2 | {{ before_version.stdout }} | {{ after_version.stdout }} | {{ ansible_date_time.iso8601 }}"
+    create: true
